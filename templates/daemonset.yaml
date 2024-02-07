@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "minifi.fullname" . }}
+  labels:
+    {{- include "minifi.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "minifi.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "minifi.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # command: ["/bin/bash","-c"]
+          # args: ["cp /tmp/dest-config/config.yml /opt/minifi/minifi-current/conf/ && ../scripts/start.sh"]
+          env:
+          - name: FTP_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ftppass
+                key: ftppass
+          volumeMounts:
+            # - name: config
+            #   mountPath: /opt/minifi/minifi-current/conf/config.yml
+            #   subPath: config.yml
+            - name: tmp
+              mountPath: /tmp/dest-config
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - /opt/minifi/minifi-current/bin/minifi.sh
+                - status
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - /opt/minifi/minifi-current/bin/minifi.sh
+                - status
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      initContainers:
+      - name: init-myservice
+        image: busybox:1.28
+        command: ["/bin/sh","-c"]
+        args:
+          - echo starting;
+            cp /tmp/source/config.yml /tmp/dest-config;
+            sed -i 's@FTP-PASSWORD@'"$FTP_PASSWORD"'@' /tmp/dest-config/config.yml;
+            echo done;
+        volumeMounts:
+          - name: config
+            mountPath: /tmp/source/config.yml
+            subPath: config.yml
+          - name: tmp
+            mountPath: /tmp/dest-config
+        env:
+        - name: FTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ftppass
+              key: ftppass
+      volumes:
+        - name: "bootstrap-conf"
+          configMap:
+            name: {{ template "minifi.fullname" . }}-config
+        - name: "config"
+          configMap:
+            name: {{ template "minifi.fullname" . }}-config
+        - name: tmp
+          emptyDir: {}        
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

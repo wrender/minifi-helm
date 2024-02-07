@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "minifi.fullname" . }}-config
+  labels:
+    app: {{ include "minifi.name" . | quote }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: {{ .Release.Name | quote }}
+    heritage: {{ .Release.Service | quote }}
+data: 
+  config.yml: |
+    MiNiFi Config Version: {{.Values.minifiConfigVersion}}
+    Flow Controller:
+      name:  {{.Values.flowControllerName}}
+      comment: ''
+    Core Properties:
+      flow controller graceful shutdown period: {{.Values.flowControllerGracefulShutdowPeriod}}
+      flow service write delay interval: {{.Values.flowServiceWriteDelayInterval}}
+      administrative yield duration: {{.Values.administrativeYieldDuration}}
+      bored yield duration: {{.Values.boredYieldDuration}}
+      max concurrent threads: {{.Values.maxConcurrentThreads}}
+    FlowFile Repository:
+      partitions: {{.Values.flowFileRepository.partitions}}
+      checkpoint interval: {{.Values.flowFileRepository.checkpointInterval}}
+      always sync: {{.Values.flowFileRepository.alwaysSync}}
+      Swap:
+        threshold: {{.Values.flowFileRepository.swap.threshold}}
+        in period: {{.Values.flowFileRepository.swap.inPeriod}}
+        in threads: {{.Values.flowFileRepository.swap.inThreads}}
+        out period: {{.Values.flowFileRepository.swap.outPeriod}}
+        out threads: {{.Values.flowFileRepository.swap.outThreads}}
+    Content Repository:
+      content claim max appendable size: {{.Values.contentRepository.contentClaimMaxAppendableSize}}
+      content claim max flow files: {{.Values.contentRepository.contentClaimMaxFlowFiles}}
+      always sync: {{.Values.contentRepository.alwayssync}}
+    Provenance Repository:
+      provenance rollover time: {{.Values.provenanceRepository.provenanceRolloverTime}}
+    Component Status Repository:
+      buffer size: {{.Values.componentStatusRepository.bufferSize}}
+      snapshot frequency: {{.Values.componentStatusRepository.snapshotFrequency}}
+    Security Properties:
+      keystore: {{.Values.securityProperties.keystore}}
+      keystore type: {{.Values.securityProperties.keystoreType}}
+      keystore password: {{.Values.securityProperties.keystorePassword}}
+      key password: {{.Values.securityProperties.keyPassword}}
+      truststore: {{.Values.securityProperties.truststore}}
+      truststore type: {{.Values.securityProperties.truststoreType}}
+      truststore password: {{.Values.securityProperties.truststorePassword}}
+      ssl protocol: {{.Values.securityProperties.sslProtocol}}
+      Sensitive Props:
+        key: {{.Values.securityProperties.sensitiveProps.key}}
+        algorithm: {{.Values.securityProperties.sensitiveProps.algorithm}}
+    Processors:
+      {{ .Values.processors | indent 6 | trim }}
+    Process Groups: []
+    Funnels: []
+    Connections:
+    - name: GetFile/success/PutFile
+      id: 098a56ba-f4bf-4323-a3f3-6f8a5e3586bf
+      source id: 2f2a3b47-f5ba-49f6-82b5-bc1c86b96e27
+      source relationship names:
+      - success
+      destination id: e143601d-de4f-44ba-a6ec-d1f97d77ec94
+    Remote Process Groups: []
+    NiFi Properties Overrides: {}

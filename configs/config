@@ -1,0 +1,94 @@
+MiNiFi Config Version: 3
+Flow Controller:
+  name: MiNiFi Flow
+  comment: ''
+Core Properties:
+  flow controller graceful shutdown period: 10 sec
+  flow service write delay interval: 500 ms
+  administrative yield duration: 30 sec
+  bored yield duration: 10 millis
+  max concurrent threads: 1
+FlowFile Repository:
+  partitions: 256
+  checkpoint interval: 2 mins
+  always sync: false
+  Swap:
+    threshold: 20000
+    in period: 5 sec
+    in threads: 1
+    out period: 5 sec
+    out threads: 4
+Content Repository:
+  content claim max appendable size: 10 MB
+  content claim max flow files: 100
+  always sync: false
+Provenance Repository:
+  provenance rollover time: 1 min
+Component Status Repository:
+  buffer size: 1440
+  snapshot frequency: 1 min
+Security Properties:
+  keystore: ''
+  keystore type: ''
+  keystore password: ''
+  key password: ''
+  truststore: ''
+  truststore type: ''
+  truststore password: ''
+  ssl protocol: ''
+  Sensitive Props:
+    key: 'blahblahblah'
+    algorithm: NIFI_PBKDF2_AES_GCM_256
+Processors:
+- name: Get files from /tmp/
+  id: 2f2a3b47-f5ba-49f6-82b5-bc1c86b96e27
+  class: org.apache.nifi.processors.standard.GetFile
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 1000 ms
+  Properties:
+    Input Directory: /tmp/getfile_dir
+    Keep Source File: 'true'
+    Recurse Subdirectories: 'true'
+    Ignore Hidden Files: 'false'
+# - name: Put files to /tmp/out_dir
+#   id: e143601d-de4f-44ba-a6ec-d1f97d77ec94
+#   class: org.apache.nifi.minifi.processors.PutFile
+#   scheduling strategy: EVENT_DRIVEN
+#   scheduling period: 1000 ms
+#   auto-terminated relationships list:
+#   - failure
+#   - success
+#   Properties:
+#     Conflict Resolution Strategy: fail
+#     Create Missing Directories: 'true'
+#     Directory: /tmp/out_dir
+- name: FTP Files away
+  id: e143601d-de4f-44ba-a6ec-d1f97d77ec94
+  class: org.apache.nifi.processors.standard.PutFTP
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 1000 ms
+  auto-terminated relationships list:
+  - failure
+  - success
+  - reject
+  Properties:
+    Hostname: 192.168.2.202
+    Port: 21
+    Username: hassio
+    Password: ${FTP_PASSWORD}
+    Create Directory: true
+    Batch Size: 500
+    Connection TImeout: 30 sec
+    Data Timeout: 30 sec
+    Conflict Resolution: REPLACE
+Process Groups: []
+Funnels: []
+Connections:
+- name: GetFile/success/PutFile
+  id: 098a56ba-f4bf-4323-a3f3-6f8a5e3586bf
+  source id: 2f2a3b47-f5ba-49f6-82b5-bc1c86b96e27
+  source relationship names:
+  - success
+  destination id: e143601d-de4f-44ba-a6ec-d1f97d77ec94
+Remote Process Groups: []
+NiFi Properties Overrides: {}
